@@ -9,13 +9,15 @@ enum TokenKind {
     SUB,          // - 3
     PRINT_CHAR,   // @ 4
     PRINT_NUM,    // % 5
-    INPUT,        // # 6
-    INVERT,       // $ 7
-    LOOP_START,   // : 8
-    LOOP_END,     // ; 9
-    COMPARE,      // ? 10
-    DUPLICATE,    // = 11
-    END,          // ! 12
+    INPUT_STRING, // # 6
+    INPUT_NUM,    // ^ 7
+    INVERT,       // $ 8
+    LOOP_START,   // : 9
+    LOOP_END,     // ; 10
+    COMPARE,      // ? 11
+    DUPLICATE,    // = 12
+    END,          // ! 13
+    CLEAR,        // & 14
     NUMBER
 }
 
@@ -65,7 +67,11 @@ class Lexer {
                     i++;
                     break;
                 case '#':
-                    tokenized ~= Token(TokenKind.INPUT, 0);
+                    tokenized ~= Token(TokenKind.INPUT_STRING, 0);
+                    i++;
+                    break;
+                case '^':
+                    tokenized ~= Token(TokenKind.INPUT_NUM, 0);
                     i++;
                     break;
                 case '$':
@@ -90,6 +96,10 @@ class Lexer {
                     break;
                 case '!':
                     tokenized ~= Token(TokenKind.END, 0);
+                    i++;
+                    break;
+                case '&':
+                    tokenized ~= Token(TokenKind.CLEAR, 0);
                     i++;
                     break;
                 default:
@@ -178,12 +188,19 @@ class Parser {
                     stack.popBack();
                     i++;
                     break;
-                case TokenKind.INPUT: {
-                    string userInput;
+                case TokenKind.INPUT_STRING: {
                     auto line = readln();
-                    if (line.length > 0) {
-                        stack ~= cast(ubyte) line[0];
+                    line = line[0..$-1].dup.reverse;
+                    foreach (char key; line) {
+                        stack ~= cast(ubyte) key;
                     }
+                    i++;
+                    break;
+                }
+                case TokenKind.INPUT_NUM: {
+                    auto line = readln();
+                    auto result = line[0..$-1].to!int;
+                    stack ~= result;
                     i++;
                     break;
                 }
@@ -254,6 +271,10 @@ class Parser {
                 case TokenKind.END:
                     writeln(stack);
                     exit(0);
+                case TokenKind.CLEAR:
+                    stack = null;
+                    i++;
+                    break;
                 case TokenKind.LOOP_END:
                 case TokenKind.NUMBER:
                     throw new Exception("Invalid token in parse stream");
